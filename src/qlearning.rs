@@ -1,8 +1,8 @@
 use crossbeam::{scope, thread};
 use ndarray::{arr1, arr2, Array1, Array2, Axis};
 use ndarray::{prelude::*, IndexLonger};
-use ndarray_stats::Quantile1dExt;
 use ndarray_stats::QuantileExt;
+use ndarray_stats::{DeviationExt, Quantile1dExt};
 use numpy::ndarray::{ArrayViewD, ArrayViewMutD};
 use ordered_float::OrderedFloat;
 use rand::distributions::Uniform;
@@ -62,6 +62,28 @@ impl Qlearner {
                     break;
                 }
             }
+        }
+        Q
+    }
+
+    pub fn learn_until_convergence(&self, episodes: &Vec<Episode>) -> QTable {
+        let mut Q = QTable::zeros(self.q_shape.f());
+        let mut Qprev = Q.clone();
+
+        for i in 0..self.max_iterations {
+            // Choose a random episode
+            let episode = episodes.choose(&mut thread_rng()).unwrap();
+            // Learn from the episode
+            self.learn_single_episode_forward_Q(&mut Q, episode);
+
+            if i % MODU == 0 {
+                let error = Q.mean_abs_err(&Qprev).unwrap();
+                println!("{i}: {error}, {}, {}", Qprev.sum(), Q.sum() - Qprev.sum());
+                if Q.abs_diff_eq(&Qprev, 1e-8) {
+                    break;
+                }
+            }
+            Qprev = Q.clone();
         }
         Q
     }

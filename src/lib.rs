@@ -167,6 +167,30 @@ fn rust_q(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     }
 
     #[pyfn(m)]
+    fn learn_until_convergence<'py>(
+        py: Python<'py>,
+        data: Vec<PyReadonlyArray2<f64>>,
+        q_shape: (usize, usize),
+        discount_factor: f64,
+        learning_rate: f64,
+        max_iterations: usize,
+        verbose: bool,
+        quit_threshold: Option<f64>,
+    ) -> &'py PyArray2<f64> {
+        let episodes = to_episodes(data);
+        let learner = Qlearner::new(
+            q_shape,
+            discount_factor,
+            learning_rate,
+            max_iterations,
+            quit_threshold,
+            verbose,
+        );
+        let QTable = learner.learn_until_convergence(&episodes);
+        QTable.into_pyarray(py)
+    }
+
+    #[pyfn(m)]
     fn double_q<'py>(
         py: Python<'py>,
         data: Vec<PyReadonlyArray2<f64>>,
